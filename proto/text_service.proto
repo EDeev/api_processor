@@ -1,0 +1,18 @@
+// proto/text_service.proto
+syntax = "proto3";
+
+package text_service;
+
+service TextProcessor {
+  rpc ProcessText(TextRequest) returns (TextResponse) {}
+}
+
+message TextRequest {
+  string text = 1;
+}
+
+message TextResponse {
+  string processed_text = 1;
+  bool success = 2;
+  string error = 3;
+}

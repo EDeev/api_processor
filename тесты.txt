@@ -1,0 +1,13 @@
+python manage.py runserver
+
+------------------------------------------
+
+Тест расширения для сканирования:
+
+curl -X POST -F "document=@C:\Users\egord\Desktop\API EasyAccess\api_project\media\uploads\Деев Е.В. Резюме.pdf" http://localhost:8000/api/document-to-text/
+
+------------------------------------------
+
+Тест для аудио транскрипции:
+
+curl -X POST -F audio=@"C:\Users\egord\Desktop\API EasyAccess\api_project\media\uploads\audio.ogg" http://localhost:8000/api/audio-to-text/
