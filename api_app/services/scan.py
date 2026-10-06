@@ -1,66 +1,70 @@
-import pdfplumber
-import docx
-import csv
-import os
-from io import StringIO, BytesIO
-from PIL import Image
 import base64
+import csv
+from html import escape
+from io import StringIO
+
+import docx
+import pdfplumber
+
+# сигнатуры форматов: картинка из PDF — это сырой поток, не обязательно PNG
+IMAGE_SIGNATURES = {
+    b"\x89PNG\r\n\x1a\n": "image/png",
+    b"\xff\xd8\xff": "image/jpeg",
+    b"GIF8": "image/gif",
+}
+
+
+def image_mime(data: bytes):
+    for signature, mime in IMAGE_SIGNATURES.items():
+        if data.startswith(signature):
+            return mime
+    return None
+
+
+def img_tag(data: bytes, mime: str) -> str:
+    return f'<img src="data:{mime};base64,{base64.b64encode(data).decode("utf-8")}"/>'
+
+
+def table_to_pre(rows) -> str:
+    csv_output = StringIO()
+    csv.writer(csv_output).writerows([[cell if cell is not None else "" for cell in row] for row in rows])
+    return f"<pre>{escape(csv_output.getvalue())}</pre>"
 
 
 def extract_text_tables(file_path: str) -> str:
+    """Текст, таблицы (CSV) и изображения документа одной HTML-строкой.
+    Текст экранируется: иначе содержимое документа становится разметкой (XSS у потребителя)"""
     result = ""
-    if file_path.endswith(".pdf"):
+    path = file_path.lower()  # раньше файл «.PDF» молча давал пустой результат
+
+    if path.endswith(".pdf"):
         with pdfplumber.open(file_path) as pdf:
             for page in pdf.pages:
                 text = page.extract_text()
                 if text:
-                    result += "<p>" + text.replace("\n", "</p><p>") + "</p>"
+                    result += "".join(f"<p>{escape(line)}</p>" for line in text.split("\n"))
 
-                tables = page.extract_tables()
-                if tables:
-                    for table in tables:
-                        csv_output = StringIO()
-                        csv_writer = csv.writer(csv_output)
-                        csv_writer.writerows(table)
-                        result += f"<pre>{csv_output.getvalue()}</pre>"
+                for table in page.extract_tables() or []:
+                    result += table_to_pre(table)
 
-                # Извлечение изображений
-                if page.images:
-                    for img in page.images:
-                        img_data = img["stream"].get_data()
-                        encoded_img = base64.b64encode(img_data).decode("utf-8")
-                        result += f'<img src="data:image/png;base64,{encoded_img}"/>'
+                # Извлечение изображений — только тех, что лежат в PDF готовым файлом (PNG/JPEG)
+                for img in page.images:
+                    data = img["stream"].get_data()
+                    mime = image_mime(data)
+                    if mime:
+                        result += img_tag(data, mime)
 
-    elif file_path.endswith(".docx"):
+    elif path.endswith(".docx"):
         doc = docx.Document(file_path)
 
-        text_data = []
-        table_data = []
-        image_data = []
+        result += "".join(f"<p>{escape(para.text)}</p>" for para in doc.paragraphs if para.text.strip())
+        result += "".join(table_to_pre([[cell.text.strip() for cell in row.cells] for row in table.rows])
+                          for table in doc.tables)
 
-        for para in doc.paragraphs:
-            if para.text.strip():
-                text_data.append(f"<p>{para.text}</p>")
-
-        for table in doc.tables:
-            csv_output = StringIO()
-            csv_writer = csv.writer(csv_output)
-            for row in table.rows:
-                csv_writer.writerow([cell.text.strip() for cell in row.cells])
-            table_data.append(f"<pre>{csv_output.getvalue()}</pre>")
-
-        # Извлечение изображений
-        for rel in doc.part.rels:
-            if "image" in doc.part.rels[rel].target_ref:
-                image_data_blob = doc.part.rels[rel].target_part.blob
-                encoded_img = base64.b64encode(image_data_blob).decode("utf-8")
-                image_data.append(f'<img src="data:image/png;base64,{encoded_img}"/>')
-
-        if text_data:
-            result += "".join(text_data)
-        if table_data:
-            result += "".join(table_data)
-        if image_data:
-            result += "".join(image_data)
+        # Извлечение изображений с их настоящим типом
+        for rel in doc.part.rels.values():
+            if "image" in rel.reltype and not rel.is_external:
+                part = rel.target_part
+                result += img_tag(part.blob, part.content_type)
 
     return result
