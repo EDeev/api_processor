@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      VOSK_MODEL_PATH: ${{ github.workspace }}/models/vosk-model-small-ru-0.22
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+      - name: Модель Vosk (кэш)
+        id: model
+        uses: actions/cache@v4
+        with:
+          path: models
+          key: vosk-model-small-ru-0.22
+      - if: steps.model.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p models
+          curl -fsSL -o /tmp/model.zip https://alphacephei.com/vosk/models/vosk-model-small-ru-0.22.zip
+          unzip -q /tmp/model.zip -d models
+      - run: pip install -r requirements-dev.txt
+      - run: ruff check --select E9,F,B --exclude proto .
+      - run: python manage.py check && python manage.py makemigrations --check --dry-run
+        env:
+          DJANGO_DEBUG: "True"
+      - run: pytest -q

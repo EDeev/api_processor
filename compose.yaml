@@ -1,0 +1,13 @@
+services:
+  api:
+    build: .
+    image: ghcr.io/edeev/api_processor:latest
+    env_file: .env
+    ports:
+      - "8000:8000"
+    volumes:
+      - data:/data
+    restart: unless-stopped
+
+volumes:
+  data:

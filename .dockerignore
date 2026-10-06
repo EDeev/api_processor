@@ -1,0 +1,7 @@
+.git
+.env
+media
+models
+db.sqlite3
+__pycache__
+tests

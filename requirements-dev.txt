@@ -1,0 +1,7 @@
+-r requirements.txt
+grpcio-tools==1.84.0  # только для пересборки proto/*_pb2*.py
+pytest==8.4.2
+pytest-django==4.11.1
+ruff==0.14.0
+fpdf2==2.8.4
+pytest-env==1.1.5
