@@ -60,7 +60,7 @@ docker compose up -d      # API на http://localhost:8000
 ```
 
 Модель Vosk и FFmpeg уже внутри образа. Готовый образ: `docker pull ghcr.io/edeev/api_processor` или
-`docker pull dcr.deev.su/edeev/api_processor`.
+`docker pull git.deev.su/edeev/api_processor`.
 
 Без Docker нужны:
 - FFmpeg в `PATH`;
@@ -121,7 +121,7 @@ ruff check --select E9,F,B --exclude proto . && pytest
 - лимиты и токен;
 - работу с настоящим gRPC-сервером и его недоступность.
 
-Docker-образ собирается по тегу `v*` и публикуется в GitHub Packages и `dcr.deev.su`.
+Docker-образ собирается по тегу `v*` и публикуется в GitHub Packages и `git.deev.su`.
 
 Код gRPC пересобирается так:
 `python -m grpc_tools.protoc -Iproto --python_out=proto --grpc_python_out=proto proto/text_service.proto`.

@@ -58,7 +58,7 @@ docker compose up -d      # API at http://localhost:8000
 ```
 
 The Vosk model and FFmpeg are inside the image. Prebuilt image: `docker pull ghcr.io/edeev/api_processor` or
-`docker pull dcr.deev.su/edeev/api_processor`.
+`docker pull git.deev.su/edeev/api_processor`.
 
 Without Docker you need:
 - FFmpeg in `PATH`;
@@ -111,7 +111,7 @@ What the tests cover:
 - limits and the token;
 - a real gRPC server and an unavailable one.
 
-The Docker image is built on `v*` tags and published to GitHub Packages and `dcr.deev.su`.
+The Docker image is built on `v*` tags and published to GitHub Packages and `git.deev.su`.
 
 ## License
 
